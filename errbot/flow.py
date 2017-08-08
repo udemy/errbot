@@ -405,9 +405,6 @@ class FlowExecutor(object):
                     if syntax_args:
                         syntax += syntax_args
                     possible_next_steps.append("- %s" % syntax)
-                if flow.next_step_hinting:
-                    self._bot.send(flow.requestor, "\n".join(possible_next_steps))
-                break
 
             log.debug("Steps triggered automatically %s", ', '.join(str(node) for node in autosteps))
             log.debug("All possible next steps: %s", ', '.join(str(node) for node in steps))
