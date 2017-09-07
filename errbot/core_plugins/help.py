@@ -137,7 +137,12 @@ class Help(BotPlugin):
                     usage += self.MSG_HELP_UNDEFINED_COMMAND
             else:
                 # filter out the commands related to this class
-                description = '\n**{name}**\n\n*{doc}*\n\n'.format(
+                if self.bot_config.DISABLE_HELP_FORMATTING is False:
+                    description = '\n**{name}**\n\n*{doc}*\n\n'
+                elif self.bot_config.DISABLE_HELP_FORMATTING is True:
+                    description = '\n{name}\n\n{doc}\n\n'
+
+                description = description.format(
                     name=obj.name,
                     doc=cls.__errdoc__.strip() or '',
                 )
