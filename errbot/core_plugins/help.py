@@ -174,9 +174,9 @@ class Help(BotPlugin):
             if len(cmd_doc) > 80:
                 cmd_doc = '{doc}...'.format(doc=cmd_doc[:77])
 
-        if self.bot_config.DISABLE_HELP_FORMATTING is False:
-            help_str = '- **{prefix}{name}** - {doc}\n'.format(prefix=prefix, name=name, doc=cmd_doc)
-        elif self.bot_config.DISABLE_HELP_FORMATTING is True:
-            help_str = '- {prefix}{name} - {doc}\n'.format(prefix=prefix, name=name, doc=cmd_doc)
+        # if self.bot_config.DISABLE_HELP_FORMATTING is False:
+        help_str = '- **{prefix}{name}** - {doc}\n'.format(prefix=prefix, name=name, doc=cmd_doc)
+        # elif self.bot_config.DISABLE_HELP_FORMATTING is True:
+        #     help_str = '- {prefix}{name} - {doc}\n'.format(prefix=prefix, name=name, doc=cmd_doc)
 
         return help_str
