@@ -29,6 +29,8 @@ def bot_config_defaults(config):
         config.HIDE_RESTRICTED_COMMANDS = False
     if not hasattr(config, 'HIDE_RESTRICTED_ACCESS'):
         config.HIDE_RESTRICTED_ACCESS = False
+    if not hasattr(config, 'DISABLE_HELP_FORMATTING'):
+        config.DISABLE_HELP_FORMATTING = False
     if not hasattr(config, 'BOT_PREFIX_OPTIONAL_ON_CHAT'):
         config.BOT_PREFIX_OPTIONAL_ON_CHAT = False
     if not hasattr(config, 'BOT_PREFIX'):
