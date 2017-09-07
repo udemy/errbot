@@ -107,7 +107,13 @@ class Help(BotPlugin):
                 obj, commands = cls_obj_commands[cls]
                 name = obj.name
                 # shows class and description
-                usage += '\n**{name}**\n\n\n'.format(
+                if self.bot_config.DISABLE_HELP_FORMATTING is False:
+                    name = '\n**{name}**\n\n\n'
+                elif self.bot_config.DISABLE_HELP_FORMATTING is True:
+                    name = '\n{name}\n\n\n'
+
+
+                usage += name.format(
                     name=name,
                     doc=cls.__errdoc__.strip() or '',
                 )
@@ -179,9 +185,9 @@ class Help(BotPlugin):
             if len(cmd_doc) > 80:
                 cmd_doc = '{doc}...'.format(doc=cmd_doc[:77])
 
-        # if self.bot_config.DISABLE_HELP_FORMATTING is False:
-        help_str = '- **{prefix}{name}** - {doc}\n'.format(prefix=prefix, name=name, doc=cmd_doc)
-        # elif self.bot_config.DISABLE_HELP_FORMATTING is True:
-        #     help_str = '- {prefix}{name} - {doc}\n'.format(prefix=prefix, name=name, doc=cmd_doc)
+         if self.bot_config.DISABLE_HELP_FORMATTING is False:
+            help_str = '- **{prefix}{name}** - {doc}\n'.format(prefix=prefix, name=name, doc=cmd_doc)
+         elif self.bot_config.DISABLE_HELP_FORMATTING is True:
+             help_str = '- {prefix}{name} - {doc}\n'.format(prefix=prefix, name=name, doc=cmd_doc)
 
         return help_str
