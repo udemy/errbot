@@ -107,7 +107,7 @@ class Help(BotPlugin):
                 obj, commands = cls_obj_commands[cls]
                 name = obj.name
                 # shows class and description
-                usage += '\n**{name}**\n\n*{doc}*\n\n'.format(
+                usage += '\n**{name}**\n\n\n'.format(
                     name=name,
                     doc=cls.__errdoc__.strip() or '',
                 )
