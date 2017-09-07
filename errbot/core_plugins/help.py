@@ -107,24 +107,23 @@ class Help(BotPlugin):
                 obj, commands = cls_obj_commands[cls]
                 name = obj.name
 
-                if name != "Miscellaneous":
-                    # shows class and description
-                    if self.bot_config.DISABLE_HELP_FORMATTING is False:
-                        name = '\n**{name}**\n\n\n'
-                    elif self.bot_config.DISABLE_HELP_FORMATTING is True:
-                        name = '\n{name}\n\n\n'
+                # shows class and description
+                if self.bot_config.DISABLE_HELP_FORMATTING is False:
+                    name = '\n**{name}**\n\n\n'
+                elif self.bot_config.DISABLE_HELP_FORMATTING is True:
+                    name = '\n{name}\n\n\n'
 
 
-                    usage += name.format(
-                        name=name,
-                        doc=cls.__errdoc__.strip() or '',
-                    )
+                usage += name.format(
+                    name=name,
+                    doc=cls.__errdoc__.strip() or '',
+                )
 
-                    for name, command in commands:
-                        if command._err_command_hidden:
-                            continue
-                        # show individual commands
-                        usage += self._cmd_help_line(name, command)
+                for name, command in commands:
+                    if command._err_command_hidden:
+                        continue
+                    # show individual commands
+                    usage += self._cmd_help_line(name, command)
             usage += '\n\n'  # end cls section
         elif args:
             for cls, (obj, cmds) in cls_obj_commands.items():
