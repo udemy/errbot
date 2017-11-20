@@ -165,60 +165,21 @@ class TextOccupant(TextPerson, RoomOccupant):
         return self.person.__hash__() + self.room.__hash__()
 
 
-class TextPlugin(BotPlugin):
-    """
-        Internal to TextBackend.
-    """
-
-    __errdoc__ = "Added commands for testing purposes"
-
-    @botcmd
-    def inroom(self, msg, args):
-        """
-           This puts you in a room with the bot.
-        """
-        self._bot._inroom = True
-        return 'Joined Room %s.' % self._bot._rooms[0]
-
-    @botcmd
-    def inperson(self, msg, args):
-        """
-           This puts you in a 1-1 chat with the bot.
-        """
-        self._bot._inroom = False
-        return 'Now in one-on-one with the bot.'
-
-    @botcmd
-    def asuser(self, msg, args):
-        """
-           This puts you in a room with the bot. You can specify a name otherwise it will default to 'luser'.
-        """
-        if args:
-            usr = args
-            if usr[0] != '@':
-                usr = '@' + usr
-            self._bot.user = self.build_identifier(usr)
-        else:
-            self._bot.user = self.build_identifier('@luser')
-        return 'You are now: %s' % self._bot.user
-
-    @botcmd
-    def asadmin(self, msg, args):
-        """
-           This puts you in a 1-1 chat with the bot.
-        """
-        self._bot.user = self.build_identifier(self.bot_config.BOT_ADMINS[0])
-        return 'You are now an admin: %s' % self._bot.user
-
-
 INTRO = """
 ---
 You start as a **bot admin in a one-on-one conversation** with the bot.
+
+### Context of the chat
 
 - Use `!inroom`{:color='blue'} to switch to a room conversation.
 - Use `!inperson`{:color='blue'} to switch back to a one-on-one conversation.
 - Use `!asuser`{:color='green'} to talk as a normal user.
 - Use `!asadmin`{:color='red'} to switch back as a bot admin.
+
+### Preferences
+
+- Use `!ml`{:color='yellow'} to flip on/off the multiline mode (Enter twice at the end to send).
+
 ---
 """
 
@@ -228,7 +189,7 @@ class TextBackend(ErrBot):
         super().__init__(config)
         log.debug("Text Backend Init.")
 
-        if 'username' in self.bot_config.BOT_IDENTITY:
+        if hasattr(self.bot_config, 'BOT_IDENTITY') and 'username' in self.bot_config.BOT_IDENTITY:
             self.bot_identifier = self.build_identifier(self.bot_config.BOT_IDENTITY['username'])
         else:
             # Just a default identity for the bot if nothing has been specified.
@@ -237,6 +198,7 @@ class TextBackend(ErrBot):
         log.debug('Bot username set at %s.', self.bot_identifier)
         self._inroom = False
         self._rooms = []
+        self._multiline = False
 
         self.demo_mode = self.bot_config.TEXT_DEMO_MODE if hasattr(self.bot_config, 'TEXT_DEMO_MODE') else False
         if not self.demo_mode:
@@ -271,9 +233,6 @@ class TextBackend(ErrBot):
     def serve_forever(self):
         self.readline_support()
 
-        # Add custom commands just for this backend.
-        self.inject_commands_from(TextPlugin(self, 'TextPlugin'))
-
         if not self._rooms:
             # artificially join a room if None were specified.
             self.query_room('#testroom').join()
@@ -299,9 +258,9 @@ class TextBackend(ErrBot):
                     to = self.bot_identifier
 
                 print()
-                multiline = ''
+                full_msg = ''
                 while True:
-                    prompt = '[␍] ' if multiline else '>>> '
+                    prompt = '[␍] ' if full_msg else '>>> '
                     if ANSI or self.demo_mode:
                         color = fg.red if self.user.person in self.bot_config.BOT_ADMINS[0] else fg.green
                         entry = input(str(color) +
@@ -311,11 +270,17 @@ class TextBackend(ErrBot):
                                       str(fx.reset))
                     else:
                         entry = input('[%s ➡ %s] ' % (frm, to) + prompt)
+
+                    if not self._multiline:
+                        full_msg = entry
+                        break
+
                     if not entry:
                         break
-                    multiline += entry + '\n'
 
-                msg = Message(multiline)
+                    full_msg += entry + '\n'
+
+                msg = Message(full_msg)
                 msg.frm = frm
                 msg.to = to
 

@@ -7,7 +7,6 @@ import time
 import sys
 import pprint
 from functools import lru_cache
-from multiprocessing.pool import ThreadPool
 
 from markdown import Markdown
 from markdown.extensions.extra import ExtraExtension
@@ -178,6 +177,9 @@ class SlackPerson(Person):
             log.warning('tried to compare a SlackPerson with a %s', type(other))
             return False
         return other.userid == self.userid
+
+    def __hash__(self):
+        return self.userid.__hash__()
 
     @property
     def person(self):

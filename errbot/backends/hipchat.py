@@ -6,7 +6,7 @@ import sys
 from functools import lru_cache
 
 from errbot.backends.base import Room, RoomDoesNotExistError, RoomOccupant
-from errbot.backends.xmpp import XMPPRoomOccupant, XMPPBackend, XMPPConnection
+from errbot.backends.xmpp import XMPPRoomOccupant, XMPPBackend, XMPPConnection, split_identifier
 
 from markdown import Markdown
 from markdown.extensions.extra import ExtraExtension
@@ -77,7 +77,7 @@ class HipChatRoomOccupant(XMPPRoomOccupant):
     https://www.hipchat.com/docs/apiv2/method/get_all_participants
     with the link to self expanded.
     """
-    def __init__(self, node=None, domain=None, resource=None, room=None, hipchat_user=None):
+    def __init__(self, node=None, domain=None, resource=None, room=None, hipchat_user=None, aclattr=None):
         """
         :param hipchat_user:
             A user object as returned by
@@ -94,7 +94,14 @@ class HipChatRoomOccupant(XMPPRoomOccupant):
                 node_domain = hipchat_user['xmpp_jid']
                 resource = hipchat_user['name']
             node, domain = node_domain.split('@')
+
+        self._aclattr = aclattr
+
         super().__init__(node, domain, resource, room)
+
+    @property
+    def aclattr(self):
+        return self._aclattr
 
 
 class HipChatRoom(Room):
@@ -346,6 +353,7 @@ class HipchatClient(XMPPConnection):
     def __init__(self, *args, **kwargs):
         self.token = kwargs.pop('token')
         self.endpoint = kwargs.pop('endpoint')
+        self._cached_users = None
         verify = kwargs.pop('verify')
         if verify is None:
             verify = True
@@ -364,14 +372,17 @@ class HipchatClient(XMPPConnection):
 
         See also: https://www.hipchat.com/docs/apiv2/method/get_all_users
         """
-        result = self.hypchat.users(guests=True)
-        users = result['items']
-        next_link = 'next' in result['links']
-        while next_link:
-            result = result.next()
-            users += result['items']
+
+        if not self._cached_users:
+            result = self.hypchat.users(guests=True)
+            users = result['items']
             next_link = 'next' in result['links']
-        return users
+            while next_link:
+                result = result.next()
+                users += result['items']
+                next_link = 'next' in result['links']
+            self._cached_users = users
+        return self._cached_users
 
 
 class HipchatBackend(XMPPBackend):
@@ -403,6 +414,14 @@ class HipchatBackend(XMPPBackend):
             server=self.server,
             verify=self.api_verify,
         )
+
+    def _build_room_occupant(self, txtrep):
+        node, domain, resource = split_identifier(txtrep)
+        return self.roomoccupant_factory(node,
+                                         domain,
+                                         resource,
+                                         self.query_room(node + '@' + domain),
+                                         aclattr=self._find_user(resource, 'name'))
 
     def callback_message(self, msg):
         super().callback_message(msg)
@@ -449,7 +468,7 @@ class HipchatBackend(XMPPBackend):
         :returns:
             An instance of :class:`~HipChatRoom`.
         """
-        if room.endswith('@conf.hipchat.com'):
+        if room.endswith('@conf.hipchat.com') or room.endswith('@conf.btf.hipchat.com'):
             log.debug("Room specified by JID, looking up room name")
             rooms = self.conn.hypchat.rooms(expand='items').contents()
             try:
@@ -480,7 +499,7 @@ class HipchatBackend(XMPPBackend):
         if not card.is_group:
             raise ValueError('Private notifications/cards are impossible to send on 1 to 1 messages on hipchat.')
         log.debug("room id = %s" % card.to)
-        room = self.conn.hypchat.get_room(str(card.to))
+        room = self.query_room(str(card.to)).room
 
         data = {'message': '-' if not card.body else self.md.convert(card.body),
                 'notify': False,
@@ -549,6 +568,7 @@ class HipchatBackend(XMPPBackend):
         """
         users = [u for u in self.conn.users if u[criteria] == name]
         if not users:
+            log.debug('Failed to find user %s', name)
             return None
         userdetail = self.conn.hypchat.get_user("%s" % users[0]['id'])
         identifier = self.build_identifier(userdetail['xmpp_jid'])
